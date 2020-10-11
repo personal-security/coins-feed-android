@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "777674751886",
+    "firebase_url": "https://coin-feed-94174.firebaseio.com",
+    "project_id": "coin-feed-94174",
+    "storage_bucket": "coin-feed-94174.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:777674751886:android:ee2e0780677b35b41deedf",
+        "android_client_info": {
+          "package_name": "com.xlab13.coinsfeed"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "777674751886-2sg4jq9h81uuodsuu997upf4rvlbme88.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPnGBrZrFrtMq9oHpPBV1yNJXc7VZQDbo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "777674751886-2sg4jq9h81uuodsuu997upf4rvlbme88.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
