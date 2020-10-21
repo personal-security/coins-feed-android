@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Coins Feed</string>
     <string name="action_settings">Settings</string>
+    <string name="action_donate">Donate</string>
     <string name="delete_from_fav">Delete from favorites?</string>
     <string name="yes">Yes</string>
     <string name="deleted_from_favorites">Deleted from favorites</string>

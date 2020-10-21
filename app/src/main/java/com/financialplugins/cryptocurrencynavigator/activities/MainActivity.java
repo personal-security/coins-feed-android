@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -13,6 +14,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +25,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.BillingClientStateListener;
+import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.PurchasesUpdatedListener;
+import com.android.billingclient.api.SkuDetails;
+import com.android.billingclient.api.SkuDetailsParams;
+import com.android.billingclient.api.SkuDetailsResponseListener;
 import com.android.installreferrer.api.InstallReferrerClient;
 import com.android.installreferrer.api.InstallReferrerStateListener;
 import com.android.installreferrer.api.ReferrerDetails;
@@ -88,6 +98,11 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
     String currencySymbol, currencyName, sort, sortDirection;
     AdView adView;
 
+    private BillingClient mBillingClient;
+    private Map<String, SkuDetails> mSkuDetailsMap = new HashMap<>();
+
+    private String mSkuId = "donate";
+
 //    private float[] mGravity;
 //    private float mAccel,mAccelCurrent,mAccelLast;
 //    private SensorManager sensorMan;
@@ -111,8 +126,7 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         actionBar.setDisplayShowCustomEnabled(true);
         actionBar.setDisplayShowHomeEnabled(false);
 
-
-
+        initBilling();
 
         ActionBar.LayoutParams lp1 = new ActionBar.LayoutParams(ActionBar.LayoutParams.MATCH_PARENT, ActionBar.LayoutParams.MATCH_PARENT);
         View customNav = LayoutInflater.from(this).inflate(R.layout.actionbar, null); // layout which contains your button.
@@ -304,6 +318,16 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(intent);
         }
+        if(id == R.id.nav_donate){
+            DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+            if (drawer.isDrawerOpen(GravityCompat.START)) {
+                drawer.closeDrawer(GravityCompat.START);
+            } else {
+                super.onBackPressed();
+            }
+            launchBilling(mSkuId);
+            return true;
+        }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -339,4 +363,80 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
         return super.onOptionsItemSelected(item);
     }
+
+    ///////////////////// donate section
+
+    private void initBilling() {
+        Log.i("===","try init payment service");
+        mBillingClient = BillingClient.newBuilder(this).setListener(new PurchasesUpdatedListener() {
+            @Override
+            public void onPurchasesUpdated(int responseCode, @Nullable List<Purchase> purchases) {
+                if (responseCode == BillingClient.BillingResponse.OK && purchases != null) {
+                    //here when purchase completed
+                    payComplete();
+                }
+            }
+        }).build();
+        mBillingClient.startConnection(new BillingClientStateListener() {
+            @Override
+            public void onBillingSetupFinished(@BillingClient.BillingResponse int billingResponseCode) {
+                Log.i("===","payment service fail , code : "+ billingResponseCode);
+                if (billingResponseCode == BillingClient.BillingResponse.OK) {
+                    //below you can query information about products and purchase
+                    Log.i("===","payment service ok");
+                    querySkuDetails(); //query for products
+                    List<Purchase> purchasesList = queryPurchases(); //query for purchases
+
+                    //if the purchase has already been made to give the goods
+                    for (int i = 0; i < purchasesList.size(); i++) {
+                        String purchaseId = purchasesList.get(i).getSku();
+                        if(TextUtils.equals(mSkuId, purchaseId)) {
+                            payComplete();
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onBillingServiceDisconnected() {
+                //here when something went wrong, e.g. no internet connection
+                Log.i("===","payment service fail");
+            }
+        });
+    }
+
+    private void querySkuDetails() {
+        SkuDetailsParams.Builder skuDetailsParamsBuilder = SkuDetailsParams.newBuilder();
+        List<String> skuList = new ArrayList<>();
+        skuList.add(mSkuId);
+        skuDetailsParamsBuilder.setSkusList(skuList).setType(BillingClient.SkuType.INAPP);
+        mBillingClient.querySkuDetailsAsync(skuDetailsParamsBuilder.build(), new SkuDetailsResponseListener() {
+            @Override
+            public void onSkuDetailsResponse(int responseCode, List<SkuDetails> skuDetailsList) {
+                if (responseCode == 0) {
+                    for (SkuDetails skuDetails : skuDetailsList) {
+                        mSkuDetailsMap.put(skuDetails.getSku(), skuDetails);
+                        Log.i("===",skuDetails.getDescription());
+                    }
+                }
+            }
+        });
+    }
+
+    private List<Purchase> queryPurchases() {
+        Purchase.PurchasesResult purchasesResult = mBillingClient.queryPurchases(BillingClient.SkuType.INAPP);
+        return purchasesResult.getPurchasesList();
+    }
+
+    public void launchBilling(String skuId) {
+        BillingFlowParams billingFlowParams = BillingFlowParams.newBuilder()
+                .setSkuDetails(mSkuDetailsMap.get(skuId))
+                .build();
+        mBillingClient.launchBillingFlow(this, billingFlowParams);
+    }
+
+    private void payComplete() {
+        Toast.makeText(this, "Thanks for your donate! We will make the app better :)", Toast.LENGTH_SHORT).show();
+    }
+
 }

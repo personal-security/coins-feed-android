@@ -6,6 +6,10 @@
             android:id="@+id/nav_settings"
             android:icon="@drawable/ic_action_settings_dark"
             android:title="@string/action_settings" />
+        <item
+            android:id="@+id/nav_donate"
+            android:icon="@drawable/ic_baseline_tag_faces_24"
+            android:title="@string/action_donate" />
     </group>
 
 </menu>
