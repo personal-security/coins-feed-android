@@ -10,6 +10,10 @@
             android:id="@+id/nav_donate"
             android:icon="@drawable/ic_baseline_tag_faces_24"
             android:title="@string/action_donate" />
+        <item
+            android:id="@+id/nav_more_apps"
+            android:icon="@drawable/ic_menu_share"
+            android:title="@string/more_apps" />
     </group>
 
 </menu>

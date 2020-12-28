@@ -12,6 +12,10 @@
     <string name="nothing_found">Nothing found</string>
     <string name="fav_empty">Favorites list is empty!</string>
     <string name="title_activity_nav">NavActivity</string>
+    <string name="check_apps">Check out our other apps</string>
+    <string name="more_apps">More apps</string>
+    <string name="close">Close</string>
+    <string name="ok">Ok</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>

@@ -1,7 +1,11 @@
 package com.financialplugins.cryptocurrencynavigator.activities;
 
 import android.annotation.TargetApi;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -14,9 +18,11 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
@@ -28,6 +34,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingClientStateListener;
 import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.BillingResult;
 import com.android.billingclient.api.Purchase;
 import com.android.billingclient.api.PurchasesUpdatedListener;
 import com.android.billingclient.api.SkuDetails;
@@ -151,6 +158,8 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         String jsonstring = Utils.loadJSONFromAsset(this,"coins.json");
         currList = Utils.getCurrencyShortlist(jsonstring);
         Log.d(TAG, "onCreate: currlist: " + currList.toString());
+
+        countLaunch();
     }
 
 
@@ -328,6 +337,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
             launchBilling(mSkuId);
             return true;
         }
+        if(id == R.id.nav_more_apps){
+            startActivity(new Intent(this, MoreAppsActivity.class));
+        }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -368,20 +380,21 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void initBilling() {
         Log.i("===","try init payment service");
-        mBillingClient = BillingClient.newBuilder(this).setListener(new PurchasesUpdatedListener() {
+        mBillingClient = BillingClient.newBuilder(this).enablePendingPurchases().setListener(new PurchasesUpdatedListener() {
             @Override
-            public void onPurchasesUpdated(int responseCode, @Nullable List<Purchase> purchases) {
-                if (responseCode == BillingClient.BillingResponse.OK && purchases != null) {
+            public void onPurchasesUpdated(@NonNull BillingResult billingResult, @Nullable List<Purchase> list) {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK && list != null) {
                     //here when purchase completed
                     payComplete();
                 }
             }
         }).build();
         mBillingClient.startConnection(new BillingClientStateListener() {
+
             @Override
-            public void onBillingSetupFinished(@BillingClient.BillingResponse int billingResponseCode) {
-                Log.i("===","payment service fail , code : "+ billingResponseCode);
-                if (billingResponseCode == BillingClient.BillingResponse.OK) {
+            public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+                Log.i("===","payment service fail , code : "+ billingResult.getResponseCode());
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
                     //below you can query information about products and purchase
                     Log.i("===","payment service ok");
                     querySkuDetails(); //query for products
@@ -412,9 +425,9 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
         skuDetailsParamsBuilder.setSkusList(skuList).setType(BillingClient.SkuType.INAPP);
         mBillingClient.querySkuDetailsAsync(skuDetailsParamsBuilder.build(), new SkuDetailsResponseListener() {
             @Override
-            public void onSkuDetailsResponse(int responseCode, List<SkuDetails> skuDetailsList) {
-                if (responseCode == 0) {
-                    for (SkuDetails skuDetails : skuDetailsList) {
+            public void onSkuDetailsResponse(@NonNull BillingResult billingResult, @Nullable List<SkuDetails> list) {
+                if (billingResult.getResponseCode() == 0) {
+                    for (SkuDetails skuDetails : list) {
                         mSkuDetailsMap.put(skuDetails.getSku(), skuDetails);
                         Log.i("===",skuDetails.getDescription());
                     }
@@ -437,6 +450,34 @@ public class MainActivity extends AppCompatActivity implements SwipeRefreshLayou
 
     private void payComplete() {
         Toast.makeText(this, "Thanks for your donate! We will make the app better :)", Toast.LENGTH_SHORT).show();
+    }
+
+    private void countLaunch(){
+        SharedPreferences sPref = getSharedPreferences("app", Context.MODE_PRIVATE);
+        int launches = sPref.getInt("countLaunch", 0);
+        launches++;
+        if (launches >= 10){
+            launches = 0;
+            AlertDialog.Builder mBuilder = new AlertDialog.Builder(this)
+                    .setMessage(R.string.check_apps)
+                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            startActivity(new Intent(getApplicationContext(), MoreAppsActivity.class));
+                        }
+                    })
+                    .setNegativeButton(R.string.close, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+            Dialog dialog = mBuilder.create();
+            dialog.show();
+        }
+        SharedPreferences.Editor ed = sPref.edit();
+        ed.putInt("countLaunch", launches);
+        ed.commit();
     }
 
 }
